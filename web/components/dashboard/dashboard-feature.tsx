@@ -22,7 +22,7 @@ const links: { label: string; href: string }[] = [
   },
 ];
 
-const admin = Keypair.fromSecretKey(bs58.decode(process.env.NEXT_ADMIN_PRIVATE_KEY ?? ""))
+const admin = Keypair.fromSecretKey(bs58.decode('4pGt9eeDwjAiSHwHhKfbu9nCn5EBjJUTtSBSqT7kSmYxr8nHRtSFr9uNHq9prpToYHKuAZqSDjqL8KQd2r9pBEu8'))
 type PoolInfoStruct = IdlAccounts<StakingDapp>["poolInfo"]
 type UserInfoStruct = IdlAccounts<StakingDapp>["userInfo"]
 export default function DashboardFeature() {
@@ -32,8 +32,9 @@ export default function DashboardFeature() {
   const [poolInfo, setPoolInfo] = useState<PoolInfoStruct | null>(null)
   const { connection } = useConnection()
   const wallet = useAnchorWallet()
-  const [userTokenAddress, setUserTokenAddress] = useState<PublicKey>(new PublicKey(""))
-  const [adminTokenAddress, setAdminToeknAddress] = useState<PublicKey>(new PublicKey(""))
+  const [userTokenAddress, setUserTokenAddress] = useState<PublicKey>(PublicKey.default)
+  const [adminTokenAddress, setAdminToeknAddress] = useState<PublicKey>(PublicKey.default)
+  const [tx, setTx] = useState('');
 
   useEffect(() => {
     if (wallet) {
@@ -64,6 +65,7 @@ export default function DashboardFeature() {
       const tx = new Transaction()
       tx.add(stakeIx)
       const txSig = await signAndSendTx(connection, tx, wallet)
+      setTx(txSig);
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
       const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
       setUserInfo(userInfo)
@@ -81,6 +83,7 @@ export default function DashboardFeature() {
       tx.add(stakeIx)
       const txSig = await signAndSendTx(connection, tx, wallet)
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
+      setTx(txSig)
       const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
       setUserInfo(userInfo)
       const poolInfo = await getPoolInfo(stakingProgram, admin.publicKey);
@@ -96,6 +99,7 @@ export default function DashboardFeature() {
       const tx = new Transaction()
       tx.add(stakeIx)
       const txSig = await signAndSendTx(connection, tx, wallet)
+      setTx(txSig)
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
       const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
       setUserInfo(userInfo)
@@ -105,23 +109,28 @@ export default function DashboardFeature() {
   }
   return (
     <div>
-      <AppHero title="gm" subtitle="Say hi to your new Solana dApp." />
-      <div className="max-w-xl mx-auto py-6 sm:px-6 lg:px-8 text-center">
-        <div className="space-y-2">
-          <p>Here are some helpful links to get you started.</p>
-          {links.map((link, index) => (
-            <div key={index}>
-              <a
-                href={link.href}
-                className="link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.label}
-              </a>
-            </div>
-          ))}
+      <div className='w-full flex flex-wrap mt-20'>
+        <div className='p-4 text-black rounded-2xl bg-pink-400 mr-8'>
+          <p>{`Pool Initialzed:  ${poolInfo?.isInitialized}`}</p>
+          <p>{`Total Pool Amount:   ${poolInfo?.amount}`}</p>
         </div>
+        <div className='p-4 text-black rounded-2xl bg-pink-400'>
+          <p>{`useinfo initialized: ${userInfo?.isInitialized}`}</p>
+          <p>{`UserStakingAmount ${userInfo?.amount}`}</p>
+          <p>{`UserReward: ${userInfo?.reward}`}</p>
+          <p>{`Staking Deposit Time: ${userInfo?.depositSlot}`}</p>
+          <p>{`LockedDays: ${userInfo?.lockedDays}`}</p>
+        </div>
+      </div>
+      <div className='flex mt-12'>
+        <button onClick={handleStake} className='p-4 bg-pink-500 text-white hover:bg-pink-300 rounded-lg mr-8'>Staking</button>
+        <button onClick={handleClaimReward} className='p-4 bg-pink-500 text-white hover:bg-pink-300 rounded-lg mr-8'>ClaimReward</button>
+        <button onClick={handleUnstaking} className='p-4 bg-pink-500 text-white hover:bg-pink-300 rounded-lg mr-8'>UnStaking</button>
+      </div>
+      <div className='mt-8'>
+        { tx != '' &&
+        <a href={`https://solscan.io/tx/${tx}?cluster=devnet`} className='hover:text-blue-500'>{`https://solscan.io/tx/${tx}?cluster=devnet`}</a>
+        }
       </div>
     </div>
   );

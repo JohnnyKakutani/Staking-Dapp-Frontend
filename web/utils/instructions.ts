@@ -4,7 +4,7 @@ import { StakingDapp } from "./idl/staking_dapp"
 import bs58 from 'bs58'
 import { BN } from 'bn.js'
 
-const admin = Keypair.fromSecretKey(bs58.decode(process.env.NEXT_ADMIN_PRIVATE_KEY ?? ""))
+const admin = Keypair.fromSecretKey(bs58.decode('4pGt9eeDwjAiSHwHhKfbu9nCn5EBjJUTtSBSqT7kSmYxr8nHRtSFr9uNHq9prpToYHKuAZqSDjqL8KQd2r9pBEu8'))
 
 export const createInitializeIx = async (
     program: anchor.Program<StakingDapp>,
@@ -31,7 +31,7 @@ export const createStakeIx = async (
     lockedDays: number
 ) => {
     const ix = program.methods
-                .stake(new BN(amount), new BN(lockedDays))
+                .stake(new BN(amount * 100000000), new BN(lockedDays))
                 .accounts({
                     user: user,
                     admin: admin.publicKey,
