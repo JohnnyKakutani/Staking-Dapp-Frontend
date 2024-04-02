@@ -30,16 +30,6 @@ export type StakingDapp = {
           "isSigner": true
         },
         {
-          "name": "stakingToken",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -312,14 +302,6 @@ export type StakingDapp = {
           {
             "name": "isInitialized",
             "type": "bool"
-          },
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "token",
-            "type": "publicKey"
           },
           {
             "name": "amount",
@@ -390,16 +372,6 @@ export const IDL: StakingDapp = {
           "isSigner": true
         },
         {
-          "name": "stakingToken",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -672,14 +644,6 @@ export const IDL: StakingDapp = {
           {
             "name": "isInitialized",
             "type": "bool"
-          },
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "token",
-            "type": "publicKey"
           },
           {
             "name": "amount",

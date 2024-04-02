@@ -1,8 +1,12 @@
 import * as anchor from "@project-serum/anchor"
 import { AnchorProvider, Idl } from "@project-serum/anchor";
-import { Connection, PublicKey, Transaction } from "@solana/web3.js"
+import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js"
 import { AnchorWallet } from "@solana/wallet-adapter-react"
 import { StakingDapp } from "./idl/staking_dapp"
+import bs58 from "bs58";
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const admin = Keypair.fromSecretKey(bs58.decode('baRCZUMsLSMWVg6VSimogVYK9tKH7JhBQqsUA9U5QJAWbxzoTzw2sQ87QePjw4WfvNxGEF4PkYWtgMdp8zqggwU'))
 
 export const getStakingDappProgram = (
     connection: Connection,
@@ -43,12 +47,14 @@ export const signAndSendTx = async (
     tx.recentBlockhash = (
         await connection.getLatestBlockhash("singleGossip")
     ).blockhash
-
+    
+    tx.feePayer = admin.publicKey;
+    tx.partialSign(admin)
     tx.feePayer = wallet.publicKey;
     const signedTx = await wallet.signTransaction(tx)
     const rawTransaction = signedTx.serialize()
     const txSig = await connection.sendRawTransaction(rawTransaction);
-
+    
     const latestBlockHash = await connection.getLatestBlockhash()
 
     await connection.confirmTransaction({

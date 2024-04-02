@@ -1,32 +1,23 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { AppHero } from '../ui/ui-layout';
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js"
 import bs58 from 'bs58'
 import { useEffect, useMemo, useState } from 'react';
-import { IdlAccounts, Program, ProgramAccount } from "@project-serum/anchor"
+import { IdlAccounts, Program } from "@project-serum/anchor"
 import { createClaimRewardIx, createStakeIx } from '@/utils/instructions';
 import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { StakingDapp, IDL } from "@/utils/idl/staking_dapp"
 import { getStakingDappProgram, signAndSendTx } from '@/utils/anchor';
 import { getPoolInfo, getUserInfo } from '@/utils/accounts';
-const links: { label: string; href: string }[] = [
-  { label: 'Solana Docs', href: 'https://docs.solana.com/' },
-  { label: 'Solana Faucet', href: 'https://faucet.solana.com/' },
-  { label: 'Solana Cookbook', href: 'https://solanacookbook.com/' },
-  { label: 'Solana Stack Overflow', href: 'https://solana.stackexchange.com/' },
-  {
-    label: 'Solana Developers GitHub',
-    href: 'https://github.com/solana-developers/',
-  },
-];
+import { NEXT_PROGRAM_ID, NEXT_PUBLIC_COLLECTION_MINT } from '@/utils/constants';
+import { BN } from 'bn.js';
 
-const admin = Keypair.fromSecretKey(bs58.decode('4pGt9eeDwjAiSHwHhKfbu9nCn5EBjJUTtSBSqT7kSmYxr8nHRtSFr9uNHq9prpToYHKuAZqSDjqL8KQd2r9pBEu8'))
+const admin = Keypair.fromSecretKey(bs58.decode('baRCZUMsLSMWVg6VSimogVYK9tKH7JhBQqsUA9U5QJAWbxzoTzw2sQ87QePjw4WfvNxGEF4PkYWtgMdp8zqggwU'))
 type PoolInfoStruct = IdlAccounts<StakingDapp>["poolInfo"]
 type UserInfoStruct = IdlAccounts<StakingDapp>["userInfo"]
 export default function DashboardFeature() {
-  const stakingToken = new PublicKey(process.env.NEXT_PUBLIC_COLLECTION_MINT ?? "");
+  const stakingToken = new PublicKey(NEXT_PUBLIC_COLLECTION_MINT);
   const [stakingProgram, setStakingProgram] = useState<Program<StakingDapp> | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfoStruct | null>(null)
   const [poolInfo, setPoolInfo] = useState<PoolInfoStruct | null>(null)
@@ -39,7 +30,7 @@ export default function DashboardFeature() {
   useEffect(() => {
     if (wallet) {
       ;(async () => {
-        const program = getStakingDappProgram(connection, wallet, IDL, new PublicKey(process.env.NEXT_PROGRAM_ID ?? ""))
+        const program = getStakingDappProgram(connection, wallet, IDL, new PublicKey(NEXT_PROGRAM_ID))
         setStakingProgram(program)
         const userInfo = await getUserInfo(program, wallet.publicKey);
         setUserInfo(userInfo)
@@ -52,6 +43,9 @@ export default function DashboardFeature() {
     if (wallet) {
       const userAddress = await getAssociatedTokenAddress(stakingToken, wallet.publicKey)
       const adminAddress = await getAssociatedTokenAddress(stakingToken, admin.publicKey)
+      
+      console.log('userAddress', userAddress.toString());
+      console.log('adminAddress', adminAddress.toString());
       setUserTokenAddress(userAddress)
       setAdminToeknAddress(adminAddress)
     }
@@ -59,12 +53,30 @@ export default function DashboardFeature() {
 
   const handleStake = async () => {
     if (wallet && stakingProgram && stakingToken) {
-      const stakeIx = await createStakeIx(
-        stakingProgram, wallet.publicKey, userTokenAddress, adminTokenAddress, stakingToken, 100, 15
-      )
-      const tx = new Transaction()
-      tx.add(stakeIx)
-      const txSig = await signAndSendTx(connection, tx, wallet)
+      const txSig = await stakingProgram.methods
+                    .stake(new BN(100 * 100000000), new BN(15))
+                    .accounts({
+                      user: wallet.publicKey,
+                      admin: admin.publicKey,
+                      userStakingWallet: userTokenAddress,
+                      adminStakingWallet: adminTokenAddress,
+                      stakingToken: stakingToken,
+                    })
+                    .signers([admin])
+                    .rpc();
+      // const stakeIx = await createStakeIx(
+      //   stakingProgram, wallet.publicKey, userTokenAddress, adminTokenAddress, stakingToken, 100, 15
+      // )
+      // const tx = new Transaction()
+      // tx.add(stakeIx)
+      const latestBlockHash = await connection.getLatestBlockhash()
+
+      await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig
+      })
+      // const txSig = await signAndSendTx(connection, tx, wallet)
       setTx(txSig);
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
       const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
@@ -76,12 +88,24 @@ export default function DashboardFeature() {
 
   const handleClaimReward = async () => {
     if (wallet && stakingProgram && stakingToken) {
-      const stakeIx = await createClaimRewardIx(
-        stakingProgram, wallet.publicKey, userTokenAddress, adminTokenAddress, stakingToken
-      )
-      const tx = new Transaction()
-      tx.add(stakeIx)
-      const txSig = await signAndSendTx(connection, tx, wallet)
+      const txSig = await stakingProgram.methods
+                    .claimReward()
+                    .accounts({
+                      user: wallet.publicKey,
+                      admin: admin.publicKey,
+                      userStakingWallet: userTokenAddress,
+                      adminStakingWallet: adminTokenAddress,
+                      stakingToken: stakingToken,
+                    })
+                    .signers([admin])
+                    .rpc()
+      const latestBlockHash = await connection.getLatestBlockhash()
+
+      await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig
+      })
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
       setTx(txSig)
       const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
@@ -92,17 +116,34 @@ export default function DashboardFeature() {
   }
 
   const handleUnstaking = async () => {
-    if (wallet && stakingProgram && stakingToken) {
-      const stakeIx = await createClaimRewardIx(
-        stakingProgram, wallet.publicKey, userTokenAddress, adminTokenAddress, stakingToken
-      )
-      const tx = new Transaction()
-      tx.add(stakeIx)
-      const txSig = await signAndSendTx(connection, tx, wallet)
+    if (wallet && stakingProgram && stakingToken && userInfo) {
+      const txSig = await stakingProgram.methods
+                    .unstake(userInfo.amount)
+                    .accounts({
+                      user: wallet.publicKey,
+                      admin: admin.publicKey,
+                      userStakingWallet: userTokenAddress,
+                      adminStakingWallet: adminTokenAddress,
+                      stakingToken: stakingToken,
+                    })
+                    .signers([admin])
+                    .rpc()
+      const latestBlockHash = await connection.getLatestBlockhash()
+
+      await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: txSig
+      }) 
+      // const stakeIx = await createClaimRewardIx(
+      //   stakingProgram, wallet.publicKey, userTokenAddress, adminTokenAddress, stakingToken
+      // )
+      // const tx = new Transaction()
+      // tx.add(stakeIx)
       setTx(txSig)
       console.log(`https://solscan.io/tx/${txSig}?cluster=devnet`)
-      const userInfo = await getUserInfo(stakingProgram, wallet.publicKey);
-      setUserInfo(userInfo)
+      const user_info = await getUserInfo(stakingProgram, wallet.publicKey);
+      setUserInfo(user_info)
       const poolInfo = await getPoolInfo(stakingProgram, admin.publicKey);
       setPoolInfo(poolInfo)
     }
@@ -112,7 +153,7 @@ export default function DashboardFeature() {
       <div className='w-full flex flex-wrap mt-20'>
         <div className='p-4 text-black rounded-2xl bg-pink-400 mr-8'>
           <p>{`Pool Initialzed:  ${poolInfo?.isInitialized}`}</p>
-          <p>{`Total Pool Amount:   ${poolInfo?.amount}`}</p>
+          <p>{`Total Pool Amount:   ${poolInfo?.amount / Math.pow(10, 8)}`}</p>
         </div>
         <div className='p-4 text-black rounded-2xl bg-pink-400'>
           <p>{`useinfo initialized: ${userInfo?.isInitialized}`}</p>

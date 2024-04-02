@@ -4,7 +4,7 @@ import { StakingDapp } from "./idl/staking_dapp"
 import bs58 from 'bs58'
 import { BN } from 'bn.js'
 
-const admin = Keypair.fromSecretKey(bs58.decode('4pGt9eeDwjAiSHwHhKfbu9nCn5EBjJUTtSBSqT7kSmYxr8nHRtSFr9uNHq9prpToYHKuAZqSDjqL8KQd2r9pBEu8'))
+const admin = Keypair.fromSecretKey(bs58.decode('baRCZUMsLSMWVg6VSimogVYK9tKH7JhBQqsUA9U5QJAWbxzoTzw2sQ87QePjw4WfvNxGEF4PkYWtgMdp8zqggwU'))
 
 export const createInitializeIx = async (
     program: anchor.Program<StakingDapp>,
@@ -14,9 +14,7 @@ export const createInitializeIx = async (
                 .initialize()
                 .accounts({
                     admin: admin.publicKey,
-                    stakingToken: stakingToken
                 })
-                .signers([admin])
                 .instruction()
     return ix;
 }
@@ -39,7 +37,6 @@ export const createStakeIx = async (
                     adminStakingWallet: adminTokenAddress,
                     stakingToken: stakingToken,
                 })
-                .signers([admin])
                 .instruction()
     return ix;  
 }
